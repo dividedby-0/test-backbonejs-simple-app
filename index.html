@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Backbone.js MVC Example</title>
+    <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.13.1/underscore-min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/backbone.js/1.4.0/backbone-min.js"></script>
+    <link rel="stylesheet" type="text/css" href="styles.css" />
+  </head>
+  <body>
+    <div id="app"></div>
+
+    <script>
+      // Model
+      var Planet = Backbone.Model.extend({
+        defaults: {
+          name: "",
+          climate: "",
+          population: "",
+        },
+      });
+
+      // Collection
+      var PlanetsList = Backbone.Collection.extend({
+        model: Planet,
+        url: "https://swapi.dev/api/planets",
+        parse: function (data) {
+          return data.results;
+        },
+        comparator: "name", // Default sort by name
+      });
+
+      // View
+      var PlanetView = Backbone.View.extend({
+        tagName: "tr",
+
+        initialize: function () {
+          this.render();
+        },
+
+        render: function () {
+          var rowNumber = this.model.collection.indexOf(this.model) + 1;
+
+          this.$el.html(`
+                    <td>${rowNumber}</td>
+                    <td>${this.model.get("name")}</td>
+                    <td>${this.model.get("climate")}</td>
+                    <td>${this.model.get("population")}</td>
+                `);
+          return this;
+        },
+      });
+
+      var PlanetsListView = Backbone.View.extend({
+        el: "#app",
+
+        initialize: function () {
+          this.collection = new PlanetsList();
+          this.pageSize = 3; // Default page size
+          this.render();
+
+          this.listenTo(this.collection, "sync", this.renderPlanets);
+        },
+
+        events: {
+          "click #fetchData": "fetchData",
+          "change #pageSize": "changePageSize",
+          "click th[name='name']": "sortByName",
+        },
+
+        render: function () {
+          // Render table header
+          this.$el.append(`
+            <label for="pageSize">Elements to display:</label>
+            <select id="pageSize" name="pageSize">
+                <option value="3">3</option>
+                <option value="5">5</option>
+                <option value="10">10</option>
+                </select>
+                <br>
+            <button id="fetchData">Fetch Data from SWAPI</button>
+            <table id="planetsTable">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th name="name">Name <span id="sortIndicator">&#x25B2;</span></th>
+                  <th>Climate</th>
+                  <th>Population</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          `);
+        },
+
+        renderPlanets: function () {
+          this.$("#planetsTable tbody").empty(); // Clear existing data from the table
+
+          var planets = this.collection.first(this.pageSize);
+
+          planets.forEach(function (planet) {
+            var planetView = new PlanetView({ model: planet });
+            this.$("#planetsTable tbody").append(planetView.render().el);
+          }, this); // Pass the correct context to forEach
+        },
+
+        fetchData: function () {
+          this.collection.fetch();
+        },
+
+        changePageSize: function () {
+          this.pageSize = parseInt($("#pageSize").val(), 10);
+          this.renderPlanets();
+        },
+
+        sortByName: function () {
+          // Toggle between ascending and descending order
+          var sortOrder =
+            this.collection.comparator.charAt(0) === "-" ? "" : "-";
+          this.collection.comparator = sortOrder + "name";
+          this.collection.sort();
+          this.renderPlanets();
+          this.updateSortIndicator(sortOrder);
+        },
+
+        updateSortIndicator: function (sortOrder) {
+          var indicator = this.$("#sortIndicator");
+          indicator.text(sortOrder === "-" ? "▼" : "▲");
+        },
+      });
+
+      // Instantiate the main view
+      var planetsListView = new PlanetsListView();
+    </script>
+  </body>
+</html>
