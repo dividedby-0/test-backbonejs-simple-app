@@ -1,5 +1,19 @@
-#fetchData {
-  margin-top: 1rem;
+#app {
+  display: flex;
+  flex-direction: column;
+}
+
+.element-container {
+  display: flex;
+  margin-bottom: 1rem;
+}
+
+.element-container label {
+  margin-right: 0.5rem;
+}
+
+.table-container {
+  overflow-x: auto;
 }
 
 #planetsTable {

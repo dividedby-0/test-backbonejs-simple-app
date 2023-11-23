@@ -59,6 +59,7 @@
         initialize: function () {
           this.collection = new PlanetsList();
           this.pageSize = 3; // Default page size
+          this.filterText = "";
           this.render();
 
           this.listenTo(this.collection, "sync", this.renderPlanets);
@@ -68,19 +69,31 @@
           "click #fetchData": "fetchData",
           "change #pageSize": "changePageSize",
           "click th[name='name']": "sortByName",
+          "input #filterText": "filterByText",
         },
 
         render: function () {
           // Render table header
           this.$el.append(`
+          <div class="element-container">
+            <label for="filterText">Filter by Name:</label>
+            <input type="text" id="filterText" name="filterText">
+          </div>
+
+          <div class="element-container">
             <label for="pageSize">Elements to display:</label>
             <select id="pageSize" name="pageSize">
-                <option value="3">3</option>
-                <option value="5">5</option>
-                <option value="10">10</option>
-                </select>
-                <br>
+              <option value="3">3</option>
+              <option value="5">5</option>
+              <option value="10">10</option>
+            </select>
+          </div>
+
+          <div class="element-container">
             <button id="fetchData">Fetch Data from SWAPI</button>
+          </div>
+
+          <div class="table-container">
             <table id="planetsTable">
               <thead>
                 <tr>
@@ -92,18 +105,38 @@
               </thead>
               <tbody></tbody>
             </table>
+          </div>
           `);
         },
 
         renderPlanets: function () {
           this.$("#planetsTable tbody").empty(); // Clear existing data from the table
 
-          var planets = this.collection.first(this.pageSize);
+          var filteredPlanets = this.applyFilters();
 
-          planets.forEach(function (planet) {
+          filteredPlanets.forEach(function (planet) {
             var planetView = new PlanetView({ model: planet });
             this.$("#planetsTable tbody").append(planetView.render().el);
-          }, this); // Pass the correct context to forEach
+          }, this);
+        },
+
+        applyFilters: function () {
+          var filteredPlanets = this.collection.models;
+
+          // Apply text filter
+          if (this.filterText.trim() !== "") {
+            filteredPlanets = filteredPlanets.filter(function (planet) {
+              var name = planet.get("name").toLowerCase();
+              return name.includes(this.filterText.toLowerCase());
+            }, this);
+          }
+
+          return filteredPlanets;
+        },
+
+        filterByText: function () {
+          this.filterText = this.$("#filterText").val();
+          this.renderPlanets();
         },
 
         fetchData: function () {
